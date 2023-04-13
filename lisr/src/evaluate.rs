@@ -9,38 +9,7 @@ where
     I: IntoIterator<Item = Expression>,
 {
     let mut environment = Environment::new();
-    environment.define_variable(
-        &Identifier {
-            name: "+".to_string(),
-        },
-        &Expression::PrimitiveProcedure {
-            procedure: primitive_addition,
-        },
-    );
-    environment.define_variable(
-        &Identifier {
-            name: "-".to_string(),
-        },
-        &Expression::PrimitiveProcedure {
-            procedure: primitive_subtraction,
-        },
-    );
-    environment.define_variable(
-        &Identifier {
-            name: "*".to_string(),
-        },
-        &Expression::PrimitiveProcedure {
-            procedure: primitive_multiplication,
-        },
-    );
-    environment.define_variable(
-        &Identifier {
-            name: "/".to_string(),
-        },
-        &Expression::PrimitiveProcedure {
-            procedure: primitive_division,
-        },
-    );
+    setup_primitive_procedures(&mut environment);
 
     let outcome = expressions
         .into_iter()
@@ -149,6 +118,41 @@ fn apply_compound_procedure(
     }
 
     evaluate_expression(body, &mut environment)
+}
+
+fn setup_primitive_procedures(environment: &mut Environment) {
+    environment.define_variable(
+        &Identifier {
+            name: "+".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_addition,
+        },
+    );
+    environment.define_variable(
+        &Identifier {
+            name: "-".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_subtraction,
+        },
+    );
+    environment.define_variable(
+        &Identifier {
+            name: "*".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_multiplication,
+        },
+    );
+    environment.define_variable(
+        &Identifier {
+            name: "/".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_division,
+        },
+    );
 }
 
 // Creates a function that can apply a primitive reducer to a sequence of
