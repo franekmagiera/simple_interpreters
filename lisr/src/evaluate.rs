@@ -14,7 +14,31 @@ where
             name: "+".to_string(),
         },
         &Expression::PrimitiveProcedure {
-            procedure: primitive_sum,
+            procedure: primitive_addition,
+        },
+    );
+    environment.define_variable(
+        &Identifier {
+            name: "-".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_subtraction,
+        },
+    );
+    environment.define_variable(
+        &Identifier {
+            name: "*".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_multiplication,
+        },
+    );
+    environment.define_variable(
+        &Identifier {
+            name: "/".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_division,
         },
     );
 
@@ -127,23 +151,73 @@ fn apply_compound_procedure(
     evaluate_expression(body, &mut environment)
 }
 
-fn primitive_sum(arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
-    if arguments.is_empty() {
-        return Err(LisrEvaluationError::RuntimeError {
-            reason: "+ function cannot be invoked without any arguments",
-        });
+// Creates a function that can apply a primitive reducer to a sequence of
+// Expressions accumulating the result.
+fn create_primitive_procedure(
+    reducer: fn(Expression, Expression) -> Result<Expression, LisrEvaluationError>,
+) -> impl Fn(Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
+    move |arguments: Vec<Expression>| -> Result<Expression, LisrEvaluationError> {
+        let Some(result) = arguments.into_iter().try_reduce(reducer)? else {
+            return Err(LisrEvaluationError::RuntimeError { reason: "An arithmetic function cannot be invoked without any arguments" })
+        };
+        Ok(result)
     }
+}
 
-    let mut sum = 0.0;
-
-    for argument in arguments.into_iter() {
-        match argument {
-            Expression::Number { value } => sum += value,
-            _ => {
-                return Err(LisrEvaluationError::TypeError);
-            }
+fn primitive_add(a: Expression, b: Expression) -> Result<Expression, LisrEvaluationError> {
+    match (a, b) {
+        (Expression::Number { value: a }, Expression::Number { value: b }) => {
+            Ok(Expression::Number { value: a + b })
         }
+        (Expression::String { value: a }, Expression::String { value: b }) => {
+            Ok(Expression::String { value: a + &b })
+        }
+        _ => Err(LisrEvaluationError::TypeError),
     }
+}
 
-    Ok(Expression::Number { value: sum })
+fn primitive_subtract(a: Expression, b: Expression) -> Result<Expression, LisrEvaluationError> {
+    match (a, b) {
+        (Expression::Number { value: a }, Expression::Number { value: b }) => {
+            Ok(Expression::Number { value: a - b })
+        }
+        _ => Err(LisrEvaluationError::TypeError),
+    }
+}
+
+fn primitive_multiply(a: Expression, b: Expression) -> Result<Expression, LisrEvaluationError> {
+    match (a, b) {
+        (Expression::Number { value: a }, Expression::Number { value: b }) => {
+            Ok(Expression::Number { value: a * b })
+        }
+        _ => Err(LisrEvaluationError::TypeError),
+    }
+}
+
+fn primitive_divide(a: Expression, b: Expression) -> Result<Expression, LisrEvaluationError> {
+    match (a, b) {
+        (Expression::Number { value: a }, Expression::Number { value: b }) => {
+            Ok(Expression::Number { value: a / b })
+        }
+        _ => Err(LisrEvaluationError::TypeError),
+    }
+}
+
+// An ugly workaround because putting the result of create_primitive_procedure
+// into a PrimitiveProcedure (which is an enum variant) is a bit problematic for me.
+// This approach is at least simple.
+fn primitive_addition(arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
+    create_primitive_procedure(primitive_add)(arguments)
+}
+
+fn primitive_subtraction(arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
+    create_primitive_procedure(primitive_subtract)(arguments)
+}
+
+fn primitive_multiplication(arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
+    create_primitive_procedure(primitive_multiply)(arguments)
+}
+
+fn primitive_division(arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
+    create_primitive_procedure(primitive_divide)(arguments)
 }

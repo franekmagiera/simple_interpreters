@@ -1,3 +1,5 @@
+#![feature(iterator_try_reduce)]
+
 mod environment;
 mod evaluate;
 mod evaluation_errors;
@@ -13,7 +15,9 @@ fn main() {
         "
     (define (make-adder n) (lambda (x) (+ x n)))
     (define two-plus (make-adder 2))
-    (two-plus 40)
+    (+ 8 (two-plus 40) -10 12.5)
+    (+ \"abc\" \"def\")
+    (* (+ (- (/ 8 2) 2) 12) 0.5)
     ",
     )
     .unwrap();
