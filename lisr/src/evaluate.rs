@@ -170,8 +170,8 @@ fn create_primitive_procedure(
 
 fn primitive_add(a: Expression, b: Expression) -> Result<Expression, LisrEvaluationError> {
     match (a, b) {
-        (Expression::Number { value: a }, Expression::Number { value: b }) => {
-            Ok(Expression::Number { value: a + b })
+        (Expression::Number { value: augend }, Expression::Number { value: addend }) => {
+            Ok(Expression::Number { value: augend + addend })
         }
         (Expression::String { value: a }, Expression::String { value: b }) => {
             Ok(Expression::String { value: a + &b })
@@ -182,8 +182,8 @@ fn primitive_add(a: Expression, b: Expression) -> Result<Expression, LisrEvaluat
 
 fn primitive_subtract(a: Expression, b: Expression) -> Result<Expression, LisrEvaluationError> {
     match (a, b) {
-        (Expression::Number { value: a }, Expression::Number { value: b }) => {
-            Ok(Expression::Number { value: a - b })
+        (Expression::Number { value: minuend }, Expression::Number { value: subtrahend }) => {
+            Ok(Expression::Number { value: minuend - subtrahend })
         }
         _ => Err(LisrEvaluationError::TypeError),
     }
@@ -191,8 +191,8 @@ fn primitive_subtract(a: Expression, b: Expression) -> Result<Expression, LisrEv
 
 fn primitive_multiply(a: Expression, b: Expression) -> Result<Expression, LisrEvaluationError> {
     match (a, b) {
-        (Expression::Number { value: a }, Expression::Number { value: b }) => {
-            Ok(Expression::Number { value: a * b })
+        (Expression::Number { value: multiplier }, Expression::Number { value: multiplicand }) => {
+            Ok(Expression::Number { value: multiplier * multiplicand })
         }
         _ => Err(LisrEvaluationError::TypeError),
     }
