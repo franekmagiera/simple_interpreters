@@ -153,6 +153,35 @@ fn setup_primitive_procedures(environment: &mut Environment) {
             procedure: primitive_division,
         },
     );
+    environment.define_variable(
+        &Identifier {
+            name: "remainder".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_remainder,
+        },
+    );
+}
+
+fn primitive_remainder(mut arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
+    let divisor = arguments.pop();
+    let dividend = arguments.pop();
+
+    if !arguments.is_empty() {
+        return Err(LisrEvaluationError::RuntimeError {
+            reason: "Remainder requiers two arguments - a dividend and a divisor",
+        });
+    }
+
+    match (dividend, divisor) {
+        (
+            Some(Expression::Number { value: dividend }),
+            Some(Expression::Number { value: divisor }),
+        ) => Ok(Expression::Number {
+            value: dividend % divisor,
+        }),
+        _ => Err(LisrEvaluationError::TypeError),
+    }
 }
 
 // Creates a function that can apply a primitive reducer to a sequence of
@@ -171,7 +200,9 @@ fn create_primitive_procedure(
 fn primitive_add(a: Expression, b: Expression) -> Result<Expression, LisrEvaluationError> {
     match (a, b) {
         (Expression::Number { value: augend }, Expression::Number { value: addend }) => {
-            Ok(Expression::Number { value: augend + addend })
+            Ok(Expression::Number {
+                value: augend + addend,
+            })
         }
         (Expression::String { value: a }, Expression::String { value: b }) => {
             Ok(Expression::String { value: a + &b })
@@ -183,7 +214,9 @@ fn primitive_add(a: Expression, b: Expression) -> Result<Expression, LisrEvaluat
 fn primitive_subtract(a: Expression, b: Expression) -> Result<Expression, LisrEvaluationError> {
     match (a, b) {
         (Expression::Number { value: minuend }, Expression::Number { value: subtrahend }) => {
-            Ok(Expression::Number { value: minuend - subtrahend })
+            Ok(Expression::Number {
+                value: minuend - subtrahend,
+            })
         }
         _ => Err(LisrEvaluationError::TypeError),
     }
@@ -191,9 +224,14 @@ fn primitive_subtract(a: Expression, b: Expression) -> Result<Expression, LisrEv
 
 fn primitive_multiply(a: Expression, b: Expression) -> Result<Expression, LisrEvaluationError> {
     match (a, b) {
-        (Expression::Number { value: multiplier }, Expression::Number { value: multiplicand }) => {
-            Ok(Expression::Number { value: multiplier * multiplicand })
-        }
+        (
+            Expression::Number { value: multiplier },
+            Expression::Number {
+                value: multiplicand,
+            },
+        ) => Ok(Expression::Number {
+            value: multiplier * multiplicand,
+        }),
         _ => Err(LisrEvaluationError::TypeError),
     }
 }
