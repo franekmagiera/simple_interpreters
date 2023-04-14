@@ -161,6 +161,14 @@ fn setup_primitive_procedures(environment: &mut Environment) {
             procedure: primitive_remainder,
         },
     );
+    environment.define_variable(
+        &Identifier {
+            name: "=".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_equals,
+        },
+    );
 }
 
 fn primitive_remainder(mut arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
@@ -182,6 +190,36 @@ fn primitive_remainder(mut arguments: Vec<Expression>) -> Result<Expression, Lis
         }),
         _ => Err(LisrEvaluationError::TypeError),
     }
+}
+
+fn primitive_equals(arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
+    let mut arguments = arguments.into_iter();
+    let Some(mut current) = arguments.next() else {
+        return Err(LisrEvaluationError::RuntimeError { reason: "Equals cannot be invoked without any arguments" });
+    };
+
+    for next in arguments {
+        match (current, &next) {
+            (Expression::Number { value: a }, Expression::Number { value: b }) => {
+                if a != *b {
+                    return Ok(Expression::False);
+                }
+            }
+            (Expression::String { value: a }, Expression::String { value: b }) => {
+                if a != *b {
+                    return Ok(Expression::False);
+                }
+            }
+            _ => {
+                return Err(LisrEvaluationError::RuntimeError {
+                    reason: "Equals is only implemented for pairs of strings or numbers",
+                })
+            }
+        }
+        current = next;
+    }
+
+    Ok(Expression::True)
 }
 
 // Creates a function that can apply a primitive reducer to a sequence of

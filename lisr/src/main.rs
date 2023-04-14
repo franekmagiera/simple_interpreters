@@ -19,6 +19,8 @@ fn main() {
     (+ \"abc\" \"def\")
     (* (+ (- (/ 8 2) 2) 12) 0.5)
     (remainder 5.2 3.0)
+    (= 2 2 2 2 3)
+    (= \"a string\" \"a string\")
     ",
     )
     .unwrap();
