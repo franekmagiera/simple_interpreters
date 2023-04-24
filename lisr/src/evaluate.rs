@@ -77,6 +77,24 @@ fn evaluate_expression(
             }
             Ok(Expression::True)
         }
+        Expression::Or { operands } => {
+            for operand in operands.into_iter() {
+                let evaluated_operand = evaluate_expression(operand, environment)?;
+                match evaluated_operand {
+                    Expression::False => {
+                        continue;
+                    }
+                    Expression::True => return Ok(Expression::True),
+                    _ => {
+                        return Err(LisrEvaluationError::RuntimeError {
+                            reason:
+                                "Operand of an or expression did not evaluate to a boolean value",
+                        })
+                    }
+                }
+            }
+            Ok(Expression::False)
+        }
         Expression::Lambda { parameters, body } => Ok(Expression::CompoundProcedure {
             parameters,
             body,

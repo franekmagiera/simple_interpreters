@@ -22,6 +22,7 @@ fn main() {
     (= 2 2 2 2 3)
     (= \"a string\" \"a string\")
     (and (< \"abc\" \"def\") (< 3 4))
+    (or (< 2 1) (< 3 2))
     ",
     )
     .unwrap();
