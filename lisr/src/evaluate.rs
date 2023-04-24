@@ -38,7 +38,9 @@ fn evaluate_expression(
         | Expression::True
         | Expression::False
         | Expression::LisrInternalObject { .. }
-        | Expression::List { .. } => Ok(expression),
+        | Expression::List { .. }
+        | Expression::PrimitiveProcedure { .. }
+        | Expression::CompoundProcedure { .. } => Ok(expression),
         Expression::Identifier(identifier) => {
             let value = environment.lookup_value(&identifier)?;
             Ok(value)
@@ -123,9 +125,6 @@ fn evaluate_expression(
                 .map(|argument| evaluate_expression(argument, environment))
                 .collect::<Result<Vec<Expression>, LisrEvaluationError>>()?;
             apply(procedure, arguments)
-        }
-        Expression::PrimitiveProcedure { .. } | Expression::CompoundProcedure { .. } => {
-            panic!("Procedures cannot be evaluated on their own")
         }
     }
 }
