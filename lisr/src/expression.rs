@@ -73,7 +73,8 @@ pub enum Expression {
     },
 
     // Implemented as a flat-closure (a.k.a. one block closure) for simplicity - each
-    // function has a copy of it's enclosing environment.
+    // function has a copy of it's enclosing environment. This means a procedure
+    // cannot modify it's enclosing environment, but can only read it.
     CompoundProcedure {
         parameters: Vec<Parameter>,
         body: Box<Expression>,
