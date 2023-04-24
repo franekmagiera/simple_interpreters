@@ -59,6 +59,24 @@ fn evaluate_expression(
                 }),
             }
         }
+        Expression::And { operands } => {
+            for operand in operands.into_iter() {
+                let evaluated_operand = evaluate_expression(operand, environment)?;
+                match evaluated_operand {
+                    Expression::True => {
+                        continue;
+                    }
+                    Expression::False => return Ok(Expression::False),
+                    _ => {
+                        return Err(LisrEvaluationError::RuntimeError {
+                            reason:
+                                "Operand of an and expression did not evaluate to a boolean value",
+                        })
+                    }
+                }
+            }
+            Ok(Expression::True)
+        }
         Expression::Lambda { parameters, body } => Ok(Expression::CompoundProcedure {
             parameters,
             body,
@@ -247,7 +265,7 @@ fn primitive_less_than(mut arguments: Vec<Expression>) -> Result<Expression, Lis
             } else {
                 Ok(Expression::False)
             }
-        },
+        }
         (Some(Expression::String { value: left }), Some(Expression::String { value: right })) => {
             if left < right {
                 Ok(Expression::True)
@@ -255,11 +273,9 @@ fn primitive_less_than(mut arguments: Vec<Expression>) -> Result<Expression, Lis
                 Ok(Expression::False)
             }
         }
-        _ => {
-            Err(LisrEvaluationError::RuntimeError {
-                reason: "Equals is only implemented for pairs of strings or numbers",
-            })
-        }
+        _ => Err(LisrEvaluationError::RuntimeError {
+            reason: "Equals is only implemented for pairs of strings or numbers",
+        }),
     }
 }
 
