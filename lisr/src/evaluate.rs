@@ -169,6 +169,14 @@ fn setup_primitive_procedures(environment: &mut Environment) {
             procedure: primitive_equals,
         },
     );
+    environment.define_variable(
+        &Identifier {
+            name: "<".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_less_than,
+        },
+    );
 }
 
 fn primitive_remainder(mut arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
@@ -177,7 +185,7 @@ fn primitive_remainder(mut arguments: Vec<Expression>) -> Result<Expression, Lis
 
     if !arguments.is_empty() {
         return Err(LisrEvaluationError::RuntimeError {
-            reason: "Remainder requiers two arguments - a dividend and a divisor",
+            reason: "Remainder requires two arguments - a dividend and a divisor",
         });
     }
 
@@ -220,6 +228,39 @@ fn primitive_equals(arguments: Vec<Expression>) -> Result<Expression, LisrEvalua
     }
 
     Ok(Expression::True)
+}
+
+fn primitive_less_than(mut arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
+    let right = arguments.pop();
+    let left = arguments.pop();
+
+    if !arguments.is_empty() {
+        return Err(LisrEvaluationError::RuntimeError {
+            reason: "'Less than' function requires two arguments",
+        });
+    }
+
+    match (left, right) {
+        (Some(Expression::Number { value: left }), Some(Expression::Number { value: right })) => {
+            if left < right {
+                Ok(Expression::True)
+            } else {
+                Ok(Expression::False)
+            }
+        },
+        (Some(Expression::String { value: left }), Some(Expression::String { value: right })) => {
+            if left < right {
+                Ok(Expression::True)
+            } else {
+                Ok(Expression::False)
+            }
+        }
+        _ => {
+            Err(LisrEvaluationError::RuntimeError {
+                reason: "Equals is only implemented for pairs of strings or numbers",
+            })
+        }
+    }
 }
 
 // Creates a function that can apply a primitive reducer to a sequence of
