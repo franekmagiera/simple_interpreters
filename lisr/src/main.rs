@@ -27,6 +27,7 @@ fn main() {
     x
     (or (= 2 3) (set! x 14))
     x
+    (begin (+ 2 2) (- 2 3) (set! x 15) (* 2 3))
     ",
     )
     .unwrap();

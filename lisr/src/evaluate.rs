@@ -103,6 +103,16 @@ fn evaluate_expression(
             body,
             environment: Box::new(environment.clone()),
         }),
+        Expression::Begin { sequence } => {
+            let result = sequence
+                .into_iter()
+                .map(|expression| evaluate_expression(expression, environment))
+                .last();
+            let Some(result ) = result else {
+                return Err(LisrEvaluationError::RuntimeError { reason: "A sequence of expressions in a begin statement cannot be empty" })
+            };
+            result
+        }
         Expression::Application {
             procedure,
             arguments,
@@ -114,8 +124,9 @@ fn evaluate_expression(
                 .collect::<Result<Vec<Expression>, LisrEvaluationError>>()?;
             apply(procedure, arguments)
         }
-        // Neither CompoundProcedure nor PrimitiveProcedure should end up in here.
-        _ => todo!(),
+        Expression::PrimitiveProcedure { .. } | Expression::CompoundProcedure { .. } => {
+            panic!("Procedures cannot be evaluated on their own")
+        }
     }
 }
 
