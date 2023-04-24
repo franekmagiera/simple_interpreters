@@ -11,6 +11,7 @@ where
     let mut environment = Environment::new();
     setup_primitive_procedures(&mut environment);
 
+    // TODO: Should it keep evaluating if an error happens?
     let outcome = expressions
         .into_iter()
         .map(|expression| evaluate_expression(expression, &mut environment))
@@ -42,7 +43,7 @@ fn evaluate_expression(
             let value = environment.lookup_value(&identifier)?;
             Ok(value)
         }
-        Expression::Definition { variable, value } => {
+        Expression::Definition { variable, value } | Expression::Assignment { variable, value } => {
             let evaluated_value = evaluate_expression(*value, environment)?;
             environment.define_variable(&variable, &evaluated_value);
             Ok(evaluated_value)
