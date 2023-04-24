@@ -35,7 +35,9 @@ fn evaluate_expression(
         | Expression::Number { .. }
         | Expression::Quotation { .. }
         | Expression::True
-        | Expression::False => Ok(expression),
+        | Expression::False
+        | Expression::LisrInternalObject { .. }
+        | Expression::List { .. } => Ok(expression),
         Expression::Identifier(identifier) => {
             let value = environment.lookup_value(&identifier)?;
             Ok(value)
@@ -111,6 +113,7 @@ fn evaluate_expression(
                 .collect::<Result<Vec<Expression>, LisrEvaluationError>>()?;
             apply(procedure, arguments)
         }
+        // Neither CompoundProcedure nor PrimitiveProcedure should end up in here.
         _ => todo!(),
     }
 }
