@@ -11,7 +11,7 @@ where
     let mut environment = Environment::new();
     setup_primitive_procedures(&mut environment);
 
-    // TODO: Should it keep evaluating if an error happens?
+    // Keeps evaluating even if an error happens.
     let outcome = expressions
         .into_iter()
         .map(|expression| evaluate_expression(expression, &mut environment))
