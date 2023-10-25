@@ -21,9 +21,7 @@ where
         Some(Ok(outcome)) => Ok(outcome),
         Some(Err(outcome)) => Err(outcome),
         // On empty input, just return an empty list.
-        None => Ok(Expression::List {
-            elements: Vec::new(),
-        }),
+        None => Ok(Expression::EmptyList),
     }
 }
 
@@ -32,13 +30,14 @@ fn evaluate_expression(
     environment: &mut Environment,
 ) -> Result<Expression, LisrEvaluationError> {
     match expression {
-        Expression::String { .. }
+        Expression::EmptyList
+        | Expression::String { .. }
         | Expression::Number { .. }
         | Expression::Quotation { .. }
         | Expression::True
         | Expression::False
         | Expression::LisrInternalObject { .. }
-        | Expression::List { .. }
+        | Expression::Cons { .. }
         | Expression::PrimitiveProcedure { .. }
         | Expression::CompoundProcedure { .. } => Ok(expression),
         Expression::Identifier(identifier) => {
@@ -227,6 +226,30 @@ fn setup_primitive_procedures(environment: &mut Environment) {
             procedure: primitive_less_than,
         },
     );
+    environment.define_variable(
+        &Identifier {
+            name: "car".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_car,
+        },
+    );
+    environment.define_variable(
+        &Identifier {
+            name: "cdr".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_cdr,
+        },
+    );
+    environment.define_variable(
+        &Identifier {
+            name: "empty-list?".to_string(),
+        },
+        &Expression::PrimitiveProcedure {
+            procedure: primitive_is_empty_list,
+        },
+    );
 }
 
 fn primitive_remainder(mut arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
@@ -308,6 +331,61 @@ fn primitive_less_than(mut arguments: Vec<Expression>) -> Result<Expression, Lis
         _ => Err(LisrEvaluationError::RuntimeError {
             reason: "Equals is only implemented for pairs of strings or numbers",
         }),
+    }
+}
+
+fn primitive_car(mut arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
+    let pair = arguments.pop();
+
+    if !arguments.is_empty() {
+        return Err(LisrEvaluationError::RuntimeError {
+            reason: "'car' function requires one 'cons' argument",
+        });
+    }
+
+    match pair {
+        Some(Expression::Cons { first, rest: _ }) => {
+            return Ok(*first);
+        }
+        _ => Err(LisrEvaluationError::RuntimeError {
+            reason: "'car' requires one 'cons' argument",
+        }),
+    }
+}
+
+fn primitive_cdr(mut arguments: Vec<Expression>) -> Result<Expression, LisrEvaluationError> {
+    let pair = arguments.pop();
+
+    if !arguments.is_empty() {
+        return Err(LisrEvaluationError::RuntimeError {
+            reason: "'cdr' function requires one 'cons' argument",
+        });
+    }
+
+    match pair {
+        Some(Expression::Cons { first: _, rest }) => {
+            return Ok(*rest);
+        }
+        _ => Err(LisrEvaluationError::RuntimeError {
+            reason: "'cdr' requires one 'cons' argument",
+        }),
+    }
+}
+
+fn primitive_is_empty_list(
+    mut arguments: Vec<Expression>,
+) -> Result<Expression, LisrEvaluationError> {
+    let object = arguments.pop();
+
+    if !arguments.is_empty() {
+        return Err(LisrEvaluationError::RuntimeError {
+            reason: "'empty-list?' function requires exactly one argument",
+        });
+    }
+
+    match object {
+        Some(Expression::EmptyList) => Ok(Expression::True),
+        _ => Ok(Expression::False),
     }
 }
 

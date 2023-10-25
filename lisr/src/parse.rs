@@ -19,6 +19,7 @@ pub enum LisrParseError {
     LambdaRequiresParameterListAndBody,
     UnexpectedExpressionForLambdaParameter,
     DefinitionRequiresVariableAndBody,
+    ConsRequiresTwoArguments,
 }
 
 pub fn parse(tokens: Vec<Token>) -> Result<Vec<Node>, LisrParseError> {

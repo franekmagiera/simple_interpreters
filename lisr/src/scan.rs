@@ -234,6 +234,7 @@ fn match_keyword_or_identifier(lexeme: String) -> Token {
         "or" => Token::Or,
         "lambda" => Token::Lambda,
         "begin" => Token::Begin,
+        "cons" => Token::Cons,
         _ => Token::Identifier { name: lexeme },
     }
 }

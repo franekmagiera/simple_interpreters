@@ -50,6 +50,9 @@ fn translate_leaf(token: Token) -> Result<Expression, LisrParseError> {
         Token::Begin => Ok(Expression::LisrInternalObject {
             name: String::from("begin"),
         }),
+        Token::Cons => Ok(Expression::LisrInternalObject {
+            name: String::from("cons"),
+        }),
         Token::LeftParen | Token::RightParen => {
             panic!("Cannot translate parentheses to an expression")
         }
@@ -94,6 +97,7 @@ fn translate_list(mut elements: VecDeque<Node>) -> Result<Expression, LisrParseE
                 Token::Or => {
                     return create_or(rest);
                 }
+                // TODO: Why not validate stuff in create_lambda like I do for other tokens?
                 Token::Lambda => {
                     let parameters = rest.pop_front();
                     let body = rest.pop_front();
@@ -109,6 +113,9 @@ fn translate_list(mut elements: VecDeque<Node>) -> Result<Expression, LisrParseE
                 Token::Begin => {
                     return create_begin(rest);
                 }
+                Token::Cons => {
+                    return create_cons(rest);
+                }
             },
             Node::List { .. } => {
                 // This must be an application if the first element is a list.
@@ -122,9 +129,7 @@ fn translate_list(mut elements: VecDeque<Node>) -> Result<Expression, LisrParseE
         }
     }
     // Got an empty list.
-    Ok(Expression::List {
-        elements: Vec::new(),
-    })
+    Ok(Expression::EmptyList)
 }
 
 fn create_application(
@@ -270,6 +275,18 @@ fn translate_parameters(parameters: VecDeque<Node>) -> Result<Vec<Parameter>, Li
 fn create_begin(arguments: VecDeque<Node>) -> Result<Expression, LisrParseError> {
     let sequence = translate(arguments)?;
     Ok(Expression::Begin { sequence })
+}
+
+fn create_cons(mut arguments: VecDeque<Node>) -> Result<Expression, LisrParseError> {
+    let left = arguments.pop_front();
+    let right = arguments.pop_front();
+    match (left, right) {
+        (Some(left), Some(right)) => Ok(Expression::Cons {
+            first: Box::new(translate_node(left)?),
+            rest: Box::new(translate_node(right)?),
+        }),
+        _ => Err(LisrParseError::ConsRequiresTwoArguments),
+    }
 }
 
 #[cfg(test)]

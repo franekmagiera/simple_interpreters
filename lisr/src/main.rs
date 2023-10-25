@@ -28,6 +28,15 @@ fn main() {
     (or (= 2 3) (set! x 14))
     x
     (begin (+ 2 2) (- 2 3) (set! x 15) (* 2 3))
+    (car (cons 1 2))
+    (car (car (cons (cons -2 3) 4)))
+    (car (cdr (cons 5 (cons 6 7))))
+    (define one-two-three (cons 1 (cons 2 (cons 3 ()))))
+    
+    (empty-list? one-two-three)
+    (empty-list? ())
+
+    (car (cdr one-two-three))
     ",
     )
     .unwrap();

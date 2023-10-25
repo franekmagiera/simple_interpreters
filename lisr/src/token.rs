@@ -21,4 +21,6 @@ pub enum Token {
 
     Lambda,
     Begin,
+
+    Cons,
 }

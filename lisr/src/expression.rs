@@ -63,10 +63,11 @@ pub enum Expression {
         arguments: Vec<Expression>,
     },
 
-    // TODO: cons, list and '(1 2 3) would create this.
-    List {
-        elements: Vec<Expression>,
+    Cons {
+        first: Box<Expression>,
+        rest: Box<Expression>,
     },
+    EmptyList,
 
     LisrInternalObject {
         name: String,
