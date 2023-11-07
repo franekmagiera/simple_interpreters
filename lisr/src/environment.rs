@@ -2,7 +2,7 @@ use crate::{
     evaluation_errors::LisrEvaluationError,
     expression::{Expression, Identifier},
 };
-use std::collections::HashMap;
+use std::collections::{hash_map::IntoIter, HashMap};
 
 type Frame = HashMap<Identifier, Expression>;
 
@@ -29,6 +29,11 @@ impl Environment {
         if let Some(definition) = self.frame.get(variable) {
             return Ok(definition.clone());
         }
+        println!("{:#>} unknown", variable.name);
         Err(LisrEvaluationError::UndefinedIdentifier)
+    }
+
+    pub fn into_iter(&self) -> IntoIter<Identifier, Expression> {
+        self.frame.clone().into_iter()
     }
 }

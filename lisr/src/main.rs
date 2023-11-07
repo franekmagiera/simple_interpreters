@@ -37,6 +37,19 @@ fn main() {
     (empty-list? ())
 
     (car (cdr one-two-three))
+
+    (define (last-element xs)
+        (if (empty-list? xs)
+            ()
+            (if (empty-list? (cdr xs))
+                (car xs)
+                (last-element (cdr xs))
+            )
+        )
+    )
+
+    (last-element one-two-three)
+    (two-plus (last-element one-two-three))
     ",
     )
     .unwrap();

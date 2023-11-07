@@ -44,11 +44,25 @@ fn evaluate_expression(
             let value = environment.lookup_value(&identifier)?;
             Ok(value)
         }
-        Expression::Definition { variable, value } | Expression::Assignment { variable, value } => {
+        Expression::Assignment { variable, value } => {
+            let lookup_result = environment.lookup_value(&variable);
+            if lookup_result.is_err() {
+                return lookup_result;
+            }
             let evaluated_value = evaluate_expression(*value, environment)?;
             environment.define_variable(&variable, &evaluated_value);
             Ok(evaluated_value)
         }
+        Expression::Definition { variable, value } => {
+            let evaluated_value = evaluate_expression(*value, environment)?;
+            environment.define_variable(&variable, &evaluated_value);
+            Ok(Expression::Identifier(variable))
+        }
+        Expression::Lambda { parameters, body } => Ok(Expression::CompoundProcedure {
+            parameters,
+            body,
+            environment: Box::new(environment.clone()),
+        }),
         Expression::If {
             predicate,
             consequent,
@@ -99,11 +113,6 @@ fn evaluate_expression(
             }
             Ok(Expression::False)
         }
-        Expression::Lambda { parameters, body } => Ok(Expression::CompoundProcedure {
-            parameters,
-            body,
-            environment: Box::new(environment.clone()),
-        }),
         Expression::Begin { sequence } => {
             let result = sequence
                 .into_iter()
@@ -123,7 +132,7 @@ fn evaluate_expression(
                 .into_iter()
                 .map(|argument| evaluate_expression(argument, environment))
                 .collect::<Result<Vec<Expression>, LisrEvaluationError>>()?;
-            apply(procedure, arguments)
+            apply(procedure, arguments, environment)
         }
     }
 }
@@ -131,14 +140,21 @@ fn evaluate_expression(
 fn apply(
     procedure: Expression,
     arguments: Vec<Expression>,
+    environment: &Environment,
 ) -> Result<Expression, LisrEvaluationError> {
     match procedure {
         Expression::PrimitiveProcedure { procedure } => procedure(arguments),
         Expression::CompoundProcedure {
             parameters,
             body,
-            environment,
-        } => apply_compound_procedure(arguments, parameters, *body, *environment),
+            environment: closed_environment,
+        } => {
+            let mut combined_environment = environment.clone();
+            for (identifier, expression) in closed_environment.into_iter() {
+                combined_environment.define_variable(&identifier, &expression);
+            }
+            apply_compound_procedure(arguments, parameters, *body, combined_environment)
+        }
         _ => Err(LisrEvaluationError::RuntimeError {
             reason: "Object cannot be invoked",
         }),
