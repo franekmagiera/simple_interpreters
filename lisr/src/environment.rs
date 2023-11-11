@@ -7,8 +7,8 @@ use std::collections::{hash_map::IntoIter, HashMap};
 type Frame = HashMap<Identifier, Expression>;
 
 // Environment consists of one frame only, because functions are implemented as
-// one-block closures. Every function has it's own copy of the environment.
-// Not the most elegant solution, but at least it's simple.
+// one-block closures. Every compound procedure has it's own copy of the
+// environment. Not the most elegant solution, but at least it's simple.
 #[derive(Debug, Clone)]
 pub struct Environment {
     frame: Frame,
