@@ -3,7 +3,7 @@ use crate::{
     expression::{Expression, Identifier, Parameter},
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LisrEvaluationError {
     RuntimeError { reason: &'static str },
     TypeError,
