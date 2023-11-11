@@ -404,11 +404,10 @@ mod tests {
     fn should_reject_identifiers_that_start_with_primitive_operator() {
         let input = "(define <3 'heart)";
 
-        let result =
-            scan(input).expect_err("Identifiers that start with an operator should be rejected.");
+        let error = scan(input).unwrap_err();
 
         assert_eq!(
-            result,
+            error,
             LisrScanError::InvalidIdentifier {
                 reason: "Identifier cannot start with an operator."
             }
@@ -419,29 +418,28 @@ mod tests {
     fn should_not_allow_empty_quotation() {
         let input = "(concat ' 'abc)";
 
-        let result = scan(input).expect_err("Empty quotations should not be allowed.");
+        let error = scan(input).unwrap_err();
 
-        assert_eq!(result, LisrScanError::EmptyQuotation);
+        assert_eq!(error, LisrScanError::EmptyQuotation);
     }
 
     #[test]
     fn should_return_an_error_when_string_is_not_closed() {
         let input = "\"Oops, an unclosed string";
 
-        let result = scan(input).expect_err("Unclosed strings should not be allowed.");
+        let error = scan(input).unwrap_err();
 
-        assert_eq!(result, LisrScanError::UnclosedString);
+        assert_eq!(error, LisrScanError::UnclosedString);
     }
 
     #[test]
     fn should_reject_numbers_with_more_than_one_decimal_point() {
         let input = "123.456.78";
 
-        let result = scan(input)
-            .expect_err("Numbers with more than one decimal point should not be allowed.");
+        let error = scan(input).unwrap_err();
 
         assert_eq!(
-            result,
+            error,
             LisrScanError::InvalidNumber {
                 reason: "A number cannot have more than one decimal point."
             }
@@ -452,10 +450,10 @@ mod tests {
     fn should_reject_numbers_that_do_not_contain_digits_only() {
         let input = "0x123";
 
-        let result = scan(input).expect_err("Numbers should contain only digits.");
+        let error = scan(input).unwrap_err();
 
         assert_eq!(
-            result,
+            error,
             LisrScanError::InvalidNumber {
                 reason: "Numbers can contain digits only."
             }
@@ -466,10 +464,10 @@ mod tests {
     fn should_reject_identifiers_that_start_with_a_digit() {
         let input = "(define (5plus x) (+ 5 x))";
 
-        let result = scan(input).expect_err("Identifiers cannot start with a digit.");
+        let error = scan(input).unwrap_err();
 
         assert_eq!(
-            result,
+            error,
             LisrScanError::InvalidNumber {
                 reason: "Numbers can contain digits only."
             }
