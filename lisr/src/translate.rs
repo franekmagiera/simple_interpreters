@@ -291,36 +291,517 @@ fn create_cons(mut arguments: VecDeque<Node>) -> Result<Expression, LisrParseErr
 
 #[cfg(test)]
 mod tests {
-    use crate::parse;
-    use crate::scan;
-
     use super::*;
 
     #[test]
-    fn parse_test() {
-        let input = "
-        (+ 1 2 (* 1.2 -.5) (/ 6 2))
-        (😲 🍟)
-        123
-        456
-        'some-quotation
-        (define (square x) (* x x))
-        (and true true)
-        (or true false)
-        (if true 1 2)
-        (define x 5)
-        (set! x 6)
-        \"a long string 123 -2 , (1 2 3)\"
-        (define (adder x) (lambda (y) (+ y x)))
-        ((adder 5) 5)
-        ";
+    fn should_create_application() {
+        let application = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf {
+                    token: Token::Identifier {
+                        name: String::from("square"),
+                    },
+                },
+                Node::Leaf {
+                    token: Token::Number { value: 10.0 },
+                },
+            ]),
+        };
 
-        let tokens = scan::scan(input).unwrap();
-        let nodes = parse::parse(tokens).unwrap();
-        let expressions = translate(nodes).unwrap();
+        let result = translate(vec![application]).unwrap();
 
-        for expression in expressions.iter() {
-            println!("{:#?}", expression);
-        }
+        assert_eq!(
+            result.get(0),
+            Some(&Expression::Application {
+                procedure: Box::new(Expression::Identifier(Identifier {
+                    name: String::from("square")
+                })),
+                arguments: vec![Expression::Number { value: 10.0 }]
+            })
+        );
+    }
+
+    #[test]
+    fn should_create_application_if_a_list_is_first_in_a_list() {
+        let application = Node::List {
+            elements: VecDeque::from([
+                Node::List {
+                    elements: VecDeque::from([
+                        Node::Leaf {
+                            token: Token::Identifier {
+                                name: String::from("make-adder"),
+                            },
+                        },
+                        Node::Leaf {
+                            token: Token::Number { value: 5.0 },
+                        },
+                    ]),
+                },
+                Node::Leaf {
+                    token: Token::Number { value: 42.0 },
+                },
+            ]),
+        };
+
+        let result = translate(vec![application]).unwrap();
+
+        assert_eq!(
+            result.get(0),
+            Some(&Expression::Application {
+                procedure: Box::new(Expression::Application {
+                    procedure: Box::new(Expression::Identifier(Identifier {
+                        name: String::from("make-adder")
+                    })),
+                    arguments: vec![Expression::Number { value: 5.0 }]
+                }),
+                arguments: vec![Expression::Number { value: 42.0 }]
+            })
+        );
+    }
+
+    #[test]
+    fn should_create_assignment() {
+        let assignment = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf { token: Token::Set },
+                Node::Leaf {
+                    token: Token::Identifier {
+                        name: String::from("x"),
+                    },
+                },
+                Node::Leaf {
+                    token: Token::Number { value: 42.0 },
+                },
+            ]),
+        };
+
+        let result = translate(vec![assignment]).unwrap();
+
+        assert_eq!(
+            result.get(0),
+            Some(&Expression::Assignment {
+                variable: Identifier {
+                    name: String::from("x")
+                },
+                value: Box::new(Expression::Number { value: 42.0 })
+            })
+        );
+    }
+
+    #[test]
+    fn should_create_definition() {
+        let definition = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf {
+                    token: Token::Define,
+                },
+                Node::Leaf {
+                    token: Token::Identifier {
+                        name: String::from("x"),
+                    },
+                },
+                Node::Leaf {
+                    token: Token::Number { value: 42.0 },
+                },
+            ]),
+        };
+
+        let result = translate(vec![definition]).unwrap();
+
+        assert_eq!(
+            result.get(0),
+            Some(&Expression::Definition {
+                variable: Identifier {
+                    name: String::from("x")
+                },
+                value: Box::new(Expression::Number { value: 42.0 })
+            })
+        );
+    }
+
+    #[test]
+    fn should_create_if() {
+        let if_statement = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf { token: Token::If },
+                Node::Leaf { token: Token::True },
+                Node::Leaf {
+                    token: Token::Number { value: 1.0 },
+                },
+                Node::Leaf {
+                    token: Token::Number { value: 0.0 },
+                },
+            ]),
+        };
+
+        let result = translate(vec![if_statement]).unwrap();
+
+        assert_eq!(
+            result.get(0),
+            Some(&Expression::If {
+                predicate: Box::new(Expression::True),
+                consequent: Box::new(Expression::Number { value: 1.0 }),
+                alternative: Box::new(Expression::Number { value: 0.0 })
+            })
+        );
+    }
+
+    #[test]
+    fn should_create_and() {
+        let and = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf { token: Token::And },
+                Node::Leaf { token: Token::True },
+                Node::Leaf {
+                    token: Token::False,
+                },
+            ]),
+        };
+
+        let result = translate(vec![and]).unwrap();
+
+        assert_eq!(
+            result.get(0),
+            Some(&Expression::And {
+                operands: vec![Expression::True, Expression::False]
+            })
+        );
+    }
+
+    #[test]
+    fn should_create_or() {
+        let or = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf { token: Token::Or },
+                Node::Leaf {
+                    token: Token::False,
+                },
+                Node::Leaf { token: Token::True },
+            ]),
+        };
+
+        let result = translate(vec![or]).unwrap();
+
+        assert_eq!(
+            result.get(0),
+            Some(&Expression::Or {
+                operands: vec![Expression::False, Expression::True]
+            })
+        );
+    }
+
+    #[test]
+    fn should_create_lambda() {
+        let lambda = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf {
+                    token: Token::Lambda,
+                },
+                Node::List {
+                    elements: VecDeque::from([
+                        Node::Leaf {
+                            token: Token::Identifier {
+                                name: String::from("x"),
+                            },
+                        },
+                        Node::Leaf {
+                            token: Token::Identifier {
+                                name: String::from("y"),
+                            },
+                        },
+                    ]),
+                },
+                Node::List {
+                    elements: VecDeque::from([
+                        Node::Leaf {
+                            token: Token::Identifier {
+                                name: String::from("+"),
+                            },
+                        },
+                        Node::Leaf {
+                            token: Token::Identifier {
+                                name: String::from("x"),
+                            },
+                        },
+                        Node::Leaf {
+                            token: Token::Identifier {
+                                name: String::from("y"),
+                            },
+                        },
+                    ]),
+                },
+            ]),
+        };
+
+        let result = translate(vec![lambda]).unwrap();
+
+        assert_eq!(
+            result.get(0),
+            Some(&Expression::Lambda {
+                parameters: vec![
+                    Parameter {
+                        name: String::from("x")
+                    },
+                    Parameter {
+                        name: String::from("y")
+                    }
+                ],
+                body: Box::new(Expression::Application {
+                    procedure: Box::new(Expression::Identifier(Identifier {
+                        name: String::from("+")
+                    })),
+                    arguments: vec![
+                        Expression::Identifier(Identifier {
+                            name: String::from("x")
+                        }),
+                        Expression::Identifier(Identifier {
+                            name: String::from("y")
+                        })
+                    ]
+                })
+            })
+        );
+    }
+
+    #[test]
+    fn should_create_begin() {
+        let begin = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf {
+                    token: Token::Begin,
+                },
+                Node::Leaf {
+                    token: Token::Number { value: 1.0 },
+                },
+            ]),
+        };
+
+        let result = translate(vec![begin]).unwrap();
+
+        assert_eq!(
+            result.get(0),
+            Some(&Expression::Begin {
+                sequence: vec![Expression::Number { value: 1.0 }]
+            })
+        );
+    }
+
+    #[test]
+    fn should_create_cons() {
+        let cons = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf { token: Token::Cons },
+                Node::Leaf {
+                    token: Token::Number { value: 1.0 },
+                },
+                Node::List {
+                    elements: VecDeque::new(),
+                },
+            ]),
+        };
+
+        let result = translate(vec![cons]).unwrap();
+
+        assert_eq!(
+            result.get(0),
+            Some(&Expression::Cons {
+                first: Box::new(Expression::Number { value: 1.0 }),
+                rest: Box::new(Expression::EmptyList)
+            })
+        );
+    }
+
+    #[test]
+    fn should_return_an_error_for_non_invokable_objects() {
+        // TODO: Parametrize the test for other non-invokable objects.
+        let ast = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf {
+                    token: Token::String {
+                        value: String::from("add"),
+                    },
+                },
+                Node::Leaf {
+                    token: Token::Number { value: 1.0 },
+                },
+                Node::Leaf {
+                    token: Token::Number { value: 2.0 },
+                },
+            ]),
+        };
+
+        let error = translate(vec![ast]).unwrap_err();
+
+        assert_eq!(error, LisrParseError::ObjectNotInvokable);
+    }
+
+    #[test]
+    fn lambda_should_require_parameters_and_body() {
+        let ast = Node::List {
+            elements: VecDeque::from([Node::Leaf {
+                token: Token::Lambda,
+            }]),
+        };
+
+        let error = translate(vec![ast]).unwrap_err();
+
+        assert_eq!(error, LisrParseError::LambdaRequiresParameterListAndBody);
+    }
+
+    #[test]
+    fn assignment_should_require_a_variable_and_a_value() {
+        let ast = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf { token: Token::Set },
+                Node::Leaf {
+                    token: Token::Identifier {
+                        name: String::from("variable"),
+                    },
+                },
+            ]),
+        };
+
+        let error = translate(vec![ast]).unwrap_err();
+
+        assert_eq!(
+            error,
+            LisrParseError::AssignmentRequiresOneVariableAndOneValue
+        );
+    }
+
+    #[test]
+    fn should_require_a_variable_in_definition() {
+        let ast = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf {
+                    token: Token::Define,
+                },
+                Node::Leaf { token: Token::True },
+                Node::Leaf {
+                    token: Token::False,
+                },
+            ]),
+        };
+
+        let error = translate(vec![ast]).unwrap_err();
+
+        assert_eq!(error, LisrParseError::VariableRequiredInThisContext);
+    }
+
+    #[test]
+    fn should_require_a_variable_in_function_definition() {
+        let ast = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf {
+                    token: Token::Define,
+                },
+                Node::List {
+                    elements: VecDeque::from([
+                        Node::Leaf {
+                            token: Token::Number { value: 1.0 },
+                        },
+                        Node::Leaf {
+                            token: Token::Number { value: 2.0 },
+                        },
+                    ]),
+                },
+                Node::Leaf {
+                    token: Token::Number { value: 3.0 },
+                },
+            ]),
+        };
+
+        let error = translate(vec![ast]).unwrap_err();
+
+        assert_eq!(error, LisrParseError::VariableRequiredInThisContext);
+    }
+
+    #[test]
+    fn should_require_two_arguments_for_cons() {
+        let ast = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf { token: Token::Cons },
+                Node::Leaf {
+                    token: Token::Number { value: 1.0 },
+                },
+            ]),
+        };
+
+        let error = translate(vec![ast]).unwrap_err();
+
+        assert_eq!(error, LisrParseError::ConsRequiresTwoArguments);
+    }
+
+    #[test]
+    fn should_convert_function_definition_to_a_lambda() {
+        let ast = Node::List {
+            elements: VecDeque::from([
+                Node::Leaf {
+                    token: Token::Define,
+                },
+                Node::List {
+                    elements: VecDeque::from([
+                        Node::Leaf {
+                            token: Token::Identifier {
+                                name: String::from("square"),
+                            },
+                        },
+                        Node::Leaf {
+                            token: Token::Identifier {
+                                name: String::from("x"),
+                            },
+                        },
+                    ]),
+                },
+                Node::List {
+                    elements: VecDeque::from([
+                        Node::Leaf {
+                            token: Token::Identifier {
+                                name: String::from("*"),
+                            },
+                        },
+                        Node::Leaf {
+                            token: Token::Identifier {
+                                name: String::from("x"),
+                            },
+                        },
+                        Node::Leaf {
+                            token: Token::Identifier {
+                                name: String::from("x"),
+                            },
+                        },
+                    ]),
+                },
+            ]),
+        };
+
+        let result = translate(vec![ast]).unwrap();
+
+        assert_eq!(
+            result.get(0),
+            Some(&Expression::Definition {
+                variable: Identifier {
+                    name: String::from("square")
+                },
+                value: Box::new(Expression::Lambda {
+                    parameters: vec![Parameter {
+                        name: String::from("x")
+                    }],
+                    body: Box::new(Expression::Application {
+                        procedure: Box::new(Expression::Identifier(Identifier {
+                            name: String::from("*")
+                        })),
+                        arguments: vec![
+                            Expression::Identifier(Identifier {
+                                name: String::from("x")
+                            }),
+                            Expression::Identifier(Identifier {
+                                name: String::from("x")
+                            })
+                        ]
+                    })
+                })
+            })
+        );
     }
 }
