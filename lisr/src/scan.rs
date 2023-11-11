@@ -15,7 +15,7 @@ const RADIX: u32 = 10;
 const LESS_THAN: char = '<';
 const GREATER_THAN: char = '>';
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LisrScanError<'a> {
     EmptyQuotation, // Empty quotations are not allowed.
     UnclosedString,
@@ -70,7 +70,7 @@ pub fn scan(input: &str) -> Result<Vec<Token>, LisrScanError> {
                             });
                         } else {
                             return Err(LisrScanError::InvalidIdentifier {
-                                reason: "Identifier cannot start with an arithmetic operator.",
+                                reason: "Identifier cannot start with an operator.",
                             });
                         }
                     }
@@ -110,7 +110,10 @@ fn scan_literal(input: &mut Peekable<Chars>) -> Result<Token, LisrScanError<'sta
             _ => scan_identifier(input),
         }
     } else {
-        panic!("Failed while scanning a literal.");
+        // This should never happen, because it is called only in the scan function,
+        // which checks that there is something in peek().
+        // The caller of that function should validate that.
+        panic!("Failed while scanning a literal - nothing to scan.");
     }
 }
 
@@ -163,7 +166,7 @@ fn scan_number(
             DOT => {
                 if is_decimal {
                     return Err(LisrScanError::InvalidNumber {
-                        reason: "Number cannot have more than one decimal point.",
+                        reason: "A number cannot have more than one decimal point.",
                     });
                 }
                 is_decimal = true;
@@ -248,26 +251,228 @@ mod tests {
     use super::*;
 
     #[test]
-    fn scan_test() -> Result<(), LisrScanError<'static>> {
-        let input = "
-        (+ 1 2 (* 1.2 -.5) (/ 6 2))
-        (😲 🍟)
-        123
-        456
-        'some-quotation
-        (define (square x) (* x x))
-        (and true true)
-        (or true false)
-        (if true 1 2)
-        (define x 5)
-        (set! x 6)
-        \"a long string 123 -2 , (1 2 3)\"
-        ";
+    fn should_scan_left_and_right_parentheses() {
+        let input = "()";
 
-        let tokens = scan(input)?;
-        for token in tokens {
-            println!("{:#?}", token);
+        let tokens = scan(input).unwrap();
+
+        assert_eq!(tokens, vec![Token::LeftParen, Token::RightParen]);
+    }
+
+    #[test]
+    fn should_scan_numbers() {
+        let input = "(+ 2.5 3.5)";
+
+        let tokens = scan(input).unwrap();
+
+        assert_eq!(tokens.get(2), Some(&Token::Number { value: 2.5 }));
+        assert_eq!(tokens.get(3), Some(&Token::Number { value: 3.5 }));
+    }
+
+    #[test]
+    fn should_scan_unicode_identifiers() {
+        let input = "(😲 🍟)";
+
+        let tokens = scan(input).unwrap();
+
+        assert_eq!(
+            tokens.get(1),
+            Some(&Token::Identifier {
+                name: String::from("😲")
+            })
+        );
+        assert_eq!(
+            tokens.get(2),
+            Some(&Token::Identifier {
+                name: String::from("🍟")
+            })
+        );
+    }
+
+    #[test]
+    fn should_scan_dash_as_identifier() {
+        let input = "(- 2 1)";
+
+        let tokens = scan(input).unwrap();
+
+        assert_eq!(
+            tokens.get(1),
+            Some(&Token::Identifier {
+                name: String::from("-")
+            })
+        );
+    }
+
+    #[test]
+    fn should_scan_dash_as_a_part_of_a_negative_number() {
+        let input = "(- 5 -2.5)";
+
+        let tokens = scan(input).unwrap();
+
+        assert_eq!(tokens.get(3), Some(&Token::Number { value: -2.5 }));
+    }
+
+    #[test]
+    fn should_scan_dash_when_it_is_the_last_character() {
+        let input = "-";
+
+        let tokens = scan(input).unwrap();
+
+        assert_eq!(
+            tokens.get(0),
+            Some(&Token::Identifier {
+                name: String::from("-")
+            })
+        );
+    }
+
+    #[test]
+    fn should_scan_primitive_operators_as_identifiers() {
+        let operators = vec!["+", "*", "/", "<", ">"];
+
+        for operator in operators.iter() {
+            let input = format!("({} 2 1", operator);
+
+            let tokens = scan(&input).unwrap();
+
+            let actual_token_for_operator = tokens.get(1);
+            let expected_token = Token::Identifier {
+                name: String::from(*operator),
+            };
+
+            assert_eq!(actual_token_for_operator, Some(&expected_token));
         }
-        Ok(())
+    }
+
+    #[test]
+    fn should_scan_quotation() {
+        let input = "(concat 'one 'two)";
+
+        let tokens = scan(input).unwrap();
+
+        assert_eq!(
+            tokens.get(2),
+            Some(&Token::Quotation {
+                text_of_quotation: String::from("one")
+            })
+        );
+        assert_eq!(
+            tokens.get(3),
+            Some(&Token::Quotation {
+                text_of_quotation: String::from("two")
+            })
+        );
+    }
+
+    #[test]
+    fn should_scan_strings() {
+        let input = "\"a very\nlong string\"";
+
+        let tokens = scan(input).unwrap();
+
+        assert_eq!(
+            tokens.get(0),
+            Some(&Token::String {
+                value: String::from("a very\nlong string")
+            })
+        );
+    }
+
+    #[test]
+    fn should_match_keywords() {
+        let keyword_to_expected_token = vec![
+            ("set!", Token::Set),
+            ("define", Token::Define),
+            ("true", Token::True),
+            ("false", Token::False),
+            ("if", Token::If),
+            ("and", Token::And),
+            ("or", Token::Or),
+            ("lambda", Token::Lambda),
+            ("begin", Token::Begin),
+            ("cons", Token::Cons),
+        ];
+
+        for (keyword, expected_token) in keyword_to_expected_token.iter() {
+            let tokens = scan(keyword).unwrap();
+
+            assert_eq!(tokens.get(0), Some(expected_token));
+        }
+    }
+
+    #[test]
+    fn should_reject_identifiers_that_start_with_primitive_operator() {
+        let input = "(define <3 'heart)";
+
+        let result =
+            scan(input).expect_err("Identifiers that start with an operator should be rejected.");
+
+        assert_eq!(
+            result,
+            LisrScanError::InvalidIdentifier {
+                reason: "Identifier cannot start with an operator."
+            }
+        );
+    }
+
+    #[test]
+    fn should_not_allow_empty_quotation() {
+        let input = "(concat ' 'abc)";
+
+        let result = scan(input).expect_err("Empty quotations should not be allowed.");
+
+        assert_eq!(result, LisrScanError::EmptyQuotation);
+    }
+
+    #[test]
+    fn should_return_an_error_when_string_is_not_closed() {
+        let input = "\"Oops, an unclosed string";
+
+        let result = scan(input).expect_err("Unclosed strings should not be allowed.");
+
+        assert_eq!(result, LisrScanError::UnclosedString);
+    }
+
+    #[test]
+    fn should_reject_numbers_with_more_than_one_decimal_point() {
+        let input = "123.456.78";
+
+        let result = scan(input)
+            .expect_err("Numbers with more than one decimal point should not be allowed.");
+
+        assert_eq!(
+            result,
+            LisrScanError::InvalidNumber {
+                reason: "A number cannot have more than one decimal point."
+            }
+        );
+    }
+
+    #[test]
+    fn should_reject_numbers_that_do_not_contain_digits_only() {
+        let input = "0x123";
+
+        let result = scan(input).expect_err("Numbers should contain only digits.");
+
+        assert_eq!(
+            result,
+            LisrScanError::InvalidNumber {
+                reason: "Numbers can contain digits only."
+            }
+        );
+    }
+
+    #[test]
+    fn should_reject_identifiers_that_start_with_a_digit() {
+        let input = "(define (5plus x) (+ 5 x))";
+
+        let result = scan(input).expect_err("Identifiers cannot start with a digit.");
+
+        assert_eq!(
+            result,
+            LisrScanError::InvalidNumber {
+                reason: "Numbers can contain digits only."
+            }
+        );
     }
 }
