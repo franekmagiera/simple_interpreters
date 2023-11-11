@@ -1,5 +1,5 @@
 use crate::{
-    evaluation_errors::LisrEvaluationError,
+    evaluate::LisrEvaluationError,
     expression::{Expression, Identifier},
 };
 use std::collections::{hash_map::IntoIter, HashMap};

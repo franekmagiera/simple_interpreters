@@ -1,4 +1,4 @@
-use crate::{environment::Environment, evaluation_errors::LisrEvaluationError};
+use crate::{environment::Environment, evaluate::LisrEvaluationError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Identifier {

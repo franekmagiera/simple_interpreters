@@ -4,7 +4,6 @@ use crate::interpret::interpret;
 
 mod environment;
 mod evaluate;
-mod evaluation_errors;
 mod expression;
 mod interpret;
 mod lisr_error;

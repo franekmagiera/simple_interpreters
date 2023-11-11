@@ -1,4 +1,4 @@
-use crate::{evaluation_errors::LisrEvaluationError, parse::LisrParseError, scan::LisrScanError};
+use crate::{evaluate::LisrEvaluationError, parse::LisrParseError, scan::LisrScanError};
 
 #[derive(Debug)]
 pub enum LisrError<'a> {

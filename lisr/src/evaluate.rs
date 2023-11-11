@@ -1,8 +1,14 @@
 use crate::{
     environment::Environment,
-    evaluation_errors::LisrEvaluationError,
     expression::{Expression, Identifier, Parameter},
 };
+
+#[derive(Debug)]
+pub enum LisrEvaluationError {
+    RuntimeError { reason: &'static str },
+    TypeError,
+    UndefinedIdentifier,
+}
 
 pub fn evaluate<I>(expressions: I) -> Result<Expression, LisrEvaluationError>
 where
