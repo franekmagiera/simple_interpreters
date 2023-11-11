@@ -8,7 +8,7 @@ use std::iter::Peekable;
 use crate::node::Node;
 use crate::token::Token;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LisrParseError {
     UnexpectedRightParentheses,
     UnclosedList,
@@ -89,40 +89,94 @@ fn parse_list_elements<'a>(
 
 #[cfg(test)]
 mod tests {
-    use crate::scan;
+    use std::vec;
 
     use super::*;
 
     #[test]
-    fn parse_test() -> Result<(), LisrParseError> {
-        let input = "
-        (+ 1 2 (* 1.2 -.5) (/ 6 2))
-        (😲 🍟)
-        123
-        456
-        'some-quotation
-        (define (square x) (* x x))
-        (and true true)
-        (or true false)
-        (if true 1 2)
-        (define x 5)
-        (set! x 6)
-        \"a long string 123 -2 , (1 2 3)\"
-        (define (adder x) (lambda (y) (+ y x)))
-        ((adder 5) 5)
-        ";
+    fn should_parse_a_leaf() {
+        let tokens = vec![Token::Number { value: 42.0 }];
 
-        match scan::scan(input) {
-            Ok(tokens) => {
-                for node in parse(tokens)? {
-                    println!("{:#?}", node);
-                }
-            }
-            Err(_) => {
-                panic!("Scanning should have gone OK...");
-            }
-        }
+        let nodes = parse(tokens).unwrap();
 
-        Ok(())
+        assert_eq!(
+            nodes.get(0),
+            Some(&Node::Leaf {
+                token: Token::Number { value: 42.0 }
+            })
+        );
+    }
+
+    #[test]
+    fn should_parse_a_list() {
+        let tokens = vec![
+            Token::LeftParen,
+            Token::Identifier {
+                name: String::from("+"),
+            },
+            Token::Number { value: 1.0 },
+            Token::Number { value: 2.0 },
+            Token::RightParen,
+        ];
+
+        let nodes = parse(tokens).unwrap();
+
+        assert_eq!(
+            nodes.get(0),
+            Some(&Node::List {
+                elements: VecDeque::from([
+                    Node::Leaf {
+                        token: Token::Identifier {
+                            name: String::from("+")
+                        }
+                    },
+                    Node::Leaf {
+                        token: Token::Number { value: 1.0 }
+                    },
+                    Node::Leaf {
+                        token: Token::Number { value: 2.0 }
+                    }
+                ])
+            })
+        );
+    }
+
+    #[test]
+    fn should_parse_an_empty_list() {
+        let tokens = vec![Token::LeftParen, Token::RightParen];
+
+        let nodes = parse(tokens).unwrap();
+
+        assert_eq!(
+            nodes.get(0),
+            Some(&Node::List {
+                elements: VecDeque::new()
+            })
+        );
+    }
+
+    #[test]
+    fn should_return_error_on_unexpected_right_parentheses() {
+        let tokens = vec![Token::RightParen];
+
+        let error = parse(tokens).unwrap_err();
+
+        assert_eq!(error, LisrParseError::UnexpectedRightParentheses);
+    }
+
+    #[test]
+    fn should_not_allow_unclosed_lists() {
+        let tokens = vec![
+            Token::LeftParen,
+            Token::Identifier {
+                name: String::from("+"),
+            },
+            Token::Number { value: 2.0 },
+            Token::Number { value: 2.0 },
+        ];
+
+        let error = parse(tokens).unwrap_err();
+
+        assert_eq!(error, LisrParseError::UnclosedList);
     }
 }
