@@ -29,7 +29,6 @@ impl Environment {
         if let Some(definition) = self.frame.get(variable) {
             return Ok(definition.clone());
         }
-        println!("{:#>} unknown", variable.name);
         Err(LisrEvaluationError::UndefinedIdentifier)
     }
 
