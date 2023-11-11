@@ -7,6 +7,7 @@ mod evaluate;
 mod evaluation_errors;
 mod expression;
 mod interpret;
+mod lisr_error;
 mod node;
 mod parse;
 mod scan;
