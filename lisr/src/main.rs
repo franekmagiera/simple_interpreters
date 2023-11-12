@@ -55,5 +55,5 @@ fn main() {
     ";
 
     let result = interpret(input);
-    println!("===> {:#?}", result);
+    println!("{:#?}", result);
 }
