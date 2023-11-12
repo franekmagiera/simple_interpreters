@@ -43,7 +43,6 @@ fn evaluate_expression(
         | Expression::True
         | Expression::False
         | Expression::LisrInternalObject { .. }
-        | Expression::Cons { .. }
         | Expression::PrimitiveProcedure { .. }
         | Expression::CompoundProcedure { .. } => Ok(expression),
         Expression::Identifier(identifier) => {
@@ -129,6 +128,10 @@ fn evaluate_expression(
             };
             result
         }
+        Expression::Cons { first, rest } => Ok(Expression::Cons {
+            first: Box::new(evaluate_expression(*first, environment)?),
+            rest: Box::new(evaluate_expression(*rest, environment)?),
+        }),
         Expression::Application {
             procedure,
             arguments,
