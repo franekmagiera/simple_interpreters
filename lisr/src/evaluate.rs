@@ -50,10 +50,9 @@ fn evaluate_expression(
             Ok(value)
         }
         Expression::Assignment { variable, value } => {
-            let lookup_result = environment.lookup_value(&variable);
-            if lookup_result.is_err() {
-                return lookup_result;
-            }
+            // Check if the value has already been defined.
+            environment.lookup_value(&variable)?;
+
             let evaluated_value = evaluate_expression(*value, environment)?;
             environment.define_variable(&variable, &evaluated_value);
             Ok(evaluated_value)
@@ -369,9 +368,7 @@ fn primitive_car(mut arguments: Vec<Expression>) -> Result<Expression, LisrEvalu
     }
 
     match pair {
-        Some(Expression::Cons { first, rest: _ }) => {
-            return Ok(*first);
-        }
+        Some(Expression::Cons { first, rest: _ }) => Ok(*first),
         _ => Err(LisrEvaluationError::RuntimeError {
             reason: "'car' requires one 'cons' argument",
         }),
@@ -388,9 +385,7 @@ fn primitive_cdr(mut arguments: Vec<Expression>) -> Result<Expression, LisrEvalu
     }
 
     match pair {
-        Some(Expression::Cons { first: _, rest }) => {
-            return Ok(*rest);
-        }
+        Some(Expression::Cons { first: _, rest }) => Ok(*rest),
         _ => Err(LisrEvaluationError::RuntimeError {
             reason: "'cdr' requires one 'cons' argument",
         }),

@@ -8,7 +8,7 @@ pub fn interpret(input: &str) -> Result<Expression, LisrError> {
     let nodes = parse(tokens)?;
     let expressions = translate(nodes)?;
     let result = evaluate(expressions)?;
-    return Ok(result);
+    Ok(result)
 }
 
 #[cfg(test)]

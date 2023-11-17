@@ -32,8 +32,8 @@ impl Environment {
         Err(LisrEvaluationError::UndefinedIdentifier)
     }
 
-    pub fn into_iter(&self) -> IntoIter<Identifier, Expression> {
-        self.frame.clone().into_iter()
+    pub fn into_iter(self) -> IntoIter<Identifier, Expression> {
+        self.frame.into_iter()
     }
 }
 

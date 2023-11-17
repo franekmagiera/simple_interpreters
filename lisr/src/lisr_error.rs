@@ -2,25 +2,25 @@ use crate::{evaluate::LisrEvaluationError, parse::LisrParseError, scan::LisrScan
 
 #[derive(Debug)]
 pub enum LisrError<'a> {
-    LisrScanError(LisrScanError<'a>),
-    LisrParseError(LisrParseError),
-    LisrEvaluationError(LisrEvaluationError),
+    Scan(LisrScanError<'a>),
+    Parse(LisrParseError),
+    Evaluation(LisrEvaluationError),
 }
 
 impl<'a> From<LisrScanError<'a>> for LisrError<'a> {
     fn from(error: LisrScanError<'a>) -> Self {
-        LisrError::LisrScanError(error)
+        LisrError::Scan(error)
     }
 }
 
 impl From<LisrParseError> for LisrError<'_> {
     fn from(error: LisrParseError) -> Self {
-        LisrError::LisrParseError(error)
+        LisrError::Parse(error)
     }
 }
 
 impl From<LisrEvaluationError> for LisrError<'_> {
     fn from(error: LisrEvaluationError) -> Self {
-        LisrError::LisrEvaluationError(error)
+        LisrError::Evaluation(error)
     }
 }
